@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>도스온라인 법령정보센터</title>
+    <style>
+        /* === 1. CSS 디자인 === */
+        :root {
+            --primary-blue: #004094; /* 법제처 스타일의 깊은 파랑 */
+            --bg-gray: #f0f2f5;
+            --border-color: #d1d1d1;
+            --category-bg: #e9ecef;
+            --text-black: #333;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif; color: var(--text-black); background-color: var(--bg-gray); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+        /* 헤더 */
+        header { background-color: white; border-bottom: 2px solid var(--primary-blue); padding: 0 20px; display: flex; align-items: center; justify-content: space-between; height: 70px; flex-shrink: 0; }
+        .logo-area { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 1.4rem; color: var(--primary-blue); cursor: pointer; text-decoration: none; }
+        .logo-img { height: 36px; width: auto; }
+        .search-box input { padding: 10px; border: 1px solid #ccc; border-radius: 4px; width: 300px; font-size: 14px; }
+
+        /* 메인 컨테이너 */
+        .container { display: flex; flex: 1; height: calc(100vh - 70px); max-width: 1600px; margin: 0 auto; width: 100%; background: white; }
+
+        /* 사이드바 (법령 목록) */
+        aside { width: 320px; border-right: 1px solid var(--border-color); background-color: #fff; display: flex; flex-direction: column; overflow-y: auto; }
+        .sidebar-title { padding: 15px; background: var(--primary-blue); color: white; font-weight: bold; text-align: center; }
+        
+        /* 카테고리 스타일 */
+        .category-header { background-color: var(--category-bg); padding: 12px 15px; font-weight: bold; font-size: 0.95rem; border-top: 1px solid #ddd; border-bottom: 1px solid #ddd; color: #555; }
+        .law-list { list-style: none; }
+        .law-item { padding: 12px 20px; border-bottom: 1px solid #f5f5f5; cursor: pointer; transition: 0.2s; font-size: 0.9rem; color: #444; }
+        .law-item:hover { background-color: #f0f7ff; color: var(--primary-blue); font-weight: bold; }
+        .law-item.active { background-color: var(--primary-blue); color: white; font-weight: bold; }
+
+        /* 본문 (법령 내용) */
+        main { flex: 1; padding: 50px; overflow-y: auto; background-color: white; }
+        .content-header { border-bottom: 3px solid #333; padding-bottom: 20px; margin-bottom: 40px; }
+        .law-title { font-size: 2.2rem; font-weight: 800; color: #111; margin-bottom: 10px; }
+        .law-meta { color: #666; font-size: 0.9rem; }
+
+        /* 법 조항 디자인 */
+        .law-body { line-height: 1.8; font-size: 1.05rem; word-break: keep-all; }
+        .chapter-title { font-size: 1.4rem; font-weight: bold; color: var(--primary-blue); margin-top: 40px; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .article { margin-bottom: 25px; padding-left: 10px; }
+        .article-title { font-weight: bold; display: block; margin-bottom: 5px; color: #222; }
+        .article-text { margin-left: 20px; color: #444; }
+
+        /* 모바일 대응 */
+        @media (max-width: 768px) {
+            .container { flex-direction: column; }
+            aside { width: 100%; height: 250px; border-bottom: 5px solid #eee; }
+            main { padding: 20px; }
+            .law-title { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo-area" onclick="location.reload()">
+            <img src="dodo.png" alt="로고" class="logo-img" id="serverLogo">
+        </div>
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="법령명 또는 내용을 검색하세요...">
+        </div>
+    </header>
+
+    <div class="container">
+        <aside id="sidebar">
+            </aside>
+
+        <main>
+            <div id="welcomeScreen" style="text-align: center; margin-top: 100px; color: #888;">
+                <h2>법령을 선택해주세요</h2>
+                <p>좌측 목록에서 확인하고 싶은 법령을 클릭하세요.</p>
+            </div>
+
+            <div id="lawContentArea" style="display: none;">
+                <div class="content-header">
+                    <h1 class="law-title" id="displayTitle"></h1>
+                    <span class="law-meta" id="displayCategory"></span>
+                </div>
+                <div class="law-body" id="displayBody"></div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        /* ================================================================
+           [데이터 입력 구간] 
+           여기서 카테고리와 법 내용을 수정하세요.
+            {
+                category: "헌법",
+                laws: [
+                    {
+                        title: "헌법",
+                        content: `
+                            <div class="chapter-title">제1장 총강</div>
+                            <div class="article">
+                                <span class="article-title">제1조</span>
+                                <div class="article-text">도스온라인의 정치 체제는 헌법과 시스템에 기초한 법률로 정한다.</div>
+                                <span class="article-title">제2조</span>
+                                <div class="article-text">도스온라인의 법률은 도스온라인 현실경제 서버와 관련 공식 커뮤니티에 적용한다.</div>
+                            </div>
+                            <div class="chapter-title">제2장 유저의 권리</div>
+                            <div class="article">
+                                <span class="article-title">제4조</span>
+                                <div class="article-text">모든 유저는 법 앞에 평등하다. 누구든지 법률에 의하지 않고는 경제·사회·문화적 생활의 영역에 있어서 차별을 받지 않는다.</div>
+                                <span class="article-title">제5조</span>
+                                <div class="article-text">모든 유저는 행위시의 법률에 의하여 범죄를 구성하지 않는 행위로 소추되지 않으며 동일한 범죄에 대하여 거듭 처벌받지 않는다.</div>
+                                <span class="article-title">제6조</span>
+                                <div class="article-text">모든 유저는 헌법과 법률에 정한 법관에 의하여 법률에 의한 재판을 받을 권리를 가진다.</div>
+                            </div>
+                        `
+                    },
+                ]
+            },
+            복붙
+           ================================================================
+        */
+        const legalData = [
+            {
+                category: "헌법",
+                laws: [
+                    {
+                        title: "헌법",
+                        content: `
+                            <div class="chapter-title">제1장 총강</div>
+                            <div class="article">
+                                <span class="article-title">제1조</span>
+                                <div class="article-text">도스온라인의 정치 체제는 헌법과 시스템에 기초한 법률로 정한다.</div>
+                                <span class="article-title">제2조</span>
+                                <div class="article-text">도스온라인의 법률은 도스온라인 현실경제 서버와 관련 공식 커뮤니티에 적용한다.</div>
+                            </div>
+                            <div class="chapter-title">제2장 유저의 권리</div>
+                            <div class="article">
+                                <span class="article-title">제4조</span>
+                                <div class="article-text">모든 유저는 법 앞에 평등하다. 누구든지 법률에 의하지 않고는 경제·사회·문화적 생활의 영역에 있어서 차별을 받지 않는다.</div>
+                                <span class="article-title">제5조</span>
+                                <div class="article-text">모든 유저는 행위시의 법률에 의하여 범죄를 구성하지 않는 행위로 소추되지 않으며 동일한 범죄에 대하여 거듭 처벌받지 않는다.</div>
+                                <span class="article-title">제6조</span>
+                                <div class="article-text">모든 유저는 헌법과 법률에 정한 법관에 의하여 법률에 의한 재판을 받을 권리를 가진다.</div>
+                            </div>
+                        `
+                    },
+                ]
+            },
+            
+        ];
+
+        /* ================================================================
+           [기능 구현부] (수정하지 않아도 됩니다)
+           ================================================================ */
+        const sidebar = document.getElementById('sidebar');
+        const welcomeScreen = document.getElementById('welcomeScreen');
+        const lawContentArea = document.getElementById('lawContentArea');
+        const displayTitle = document.getElementById('displayTitle');
+        const displayCategory = document.getElementById('displayCategory');
+        const displayBody = document.getElementById('displayBody');
+        const searchInput = document.getElementById('searchInput');
+
+        // 사이드바 렌더링 함수
+        function renderSidebar(data, keyword = '') {
+            sidebar.innerHTML = ''; // 초기화
+
+            data.forEach(group => {
+                // 검색어가 있을 때 필터링
+                const filteredLaws = group.laws.filter(law => 
+                    law.title.includes(keyword) || law.content.includes(keyword)
+                );
+
+                // 검색어가 있는데 해당 카테고리에 맞는 법이 없으면 건너뜀
+                if (keyword && filteredLaws.length === 0) return;
+
+                // 보여줄 법 목록 선택 (검색 중이면 필터된 것, 아니면 전체)
+                const lawsToShow = keyword ? filteredLaws : group.laws;
+
+                // 카테고리 헤더 생성
+                const catHeader = document.createElement('div');
+                catHeader.className = 'category-header';
+                catHeader.innerText = group.category;
+                sidebar.appendChild(catHeader);
+
+                // 법 목록(ul) 생성
+                const ul = document.createElement('ul');
+                ul.className = 'law-list';
+
+                lawsToShow.forEach(law => {
+                    const li = document.createElement('li');
+                    li.className = 'law-item';
+                    li.innerText = law.title;
+                    li.addEventListener('click', () => {
+                        // 모든 활성화 표시 제거
+                        document.querySelectorAll('.law-item').forEach(item => item.classList.remove('active'));
+                        li.classList.add('active'); // 현재 클릭한 것 활성화
+                        showLawContent(law, group.category);
+                    });
+                    ul.appendChild(li);
+                });
+                sidebar.appendChild(ul);
+            });
+        }
+
+        // 본문에 법 내용 표시 함수
+        function showLawContent(law, categoryName) {
+            welcomeScreen.style.display = 'none';
+            lawContentArea.style.display = 'block';
+            
+            displayTitle.innerText = law.title;
+            displayCategory.innerText = categoryName;
+            displayBody.innerHTML = law.content;
+
+            // 모바일에서 클릭 시 스크롤 상단으로
+            if(window.innerWidth <= 768) {
+                window.scrollTo({ top: document.querySelector('main').offsetTop, behavior: 'smooth' });
+            }
+        }
+
+        // 검색 이벤트 리스너
+        searchInput.addEventListener('input', (e) => {
+            renderSidebar(legalData, e.target.value);
+        });
+
+        // 초기 실행
+        renderSidebar(legalData);
+
+    </script>
+</body>
+</html>
